@@ -11,9 +11,11 @@ class TransportManager extends LaravelTransportManager
 		$config = $this->app['config']->get('services.elastic_email', []);
 
 		return new ElasticTransport(
-			$this->guzzle($config),
+			$this->getHttpClient($config),
 			$config['key'],
-			$config['account']
+			$config['account'],
+            $config['model'],
+            $config['rate']
 		);
 	}
 }

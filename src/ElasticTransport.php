@@ -5,6 +5,7 @@ namespace Chocoholics\LaravelElasticEmail;
 use GuzzleHttp\ClientInterface;
 use Illuminate\Mail\Transport\Transport;
 use Swift_Mime_Message;
+use Illuminate\Support\Facades\Log;
 
 class ElasticTransport extends Transport
 {
@@ -46,11 +47,13 @@ class ElasticTransport extends Transport
 	 *
      * @return void
      */
-    public function __construct(ClientInterface $client, $key, $account)
+    public function __construct(ClientInterface $client, $key, $account, $model, $rate)
     {
     	$this->client = $client;
         $this->key = $key;
         $this->account = $account;
+        $this->rate    = $rate;
+        $this->model   =  $model;
     }
 
     /**
@@ -73,14 +76,12 @@ class ElasticTransport extends Transport
 			'to' => $this->getEmailAddresses($message),
             'subject' => $message->getSubject(),
             'body_html' => $message->getBody(),
-	    'body_text' => $this->getText($message)
+	        'body_text' => $this->getText($message)
         ];
 
-        $result = $this->client->post($this->url, [
-        	'form_params' => $data
-		]);
-        
-        return $result;
+        $model = new $this->model();
+        $model->data= json_encode($data);
+        return $model->save();
     }
 
     /**
@@ -127,4 +128,28 @@ class ElasticTransport extends Transport
 		}
 		return '';
 	}
+
+    public function sendQueue(){
+        $model = $this->model;
+        $emails = $model::whereNull('send_at')
+            ->orderBy('created_at', 'asc')
+            ->take($this->rate)
+            ->get();
+
+        foreach ($emails as $e) {
+            $result = $this->client->post($this->url, [
+                'form_params' => $e->data
+            ]);
+            $body = $result->getBody();
+            $obj  = json_decode($body->getContents());
+
+            if(empty($obj->success)){
+                Log::warning($this->error);
+            }else{
+                $e->send_at = date("Y-m-d H:i:s");
+            }
+            $e->save();
+        }
+        
+    }
 }
