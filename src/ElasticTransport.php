@@ -136,6 +136,9 @@ class ElasticTransport extends Transport
             ->take($this->rate)
             ->get();
 
+        //delete old
+        $model::where('send_at', '<',  date("Y-m-d H:i:s", strtotime("-1 day")))->delete();
+
         foreach ($emails as $e) {
             $result = $this->client->post($this->url, [
                 'form_params' => $e->data
