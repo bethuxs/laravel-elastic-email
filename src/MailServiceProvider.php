@@ -14,7 +14,7 @@ class MailServiceProvider extends LaravelMailServiceProvider
     protected function registerSwiftTransport()
     {
         $this->app->singleton('swift.transport', function ($app) {
-		return new TransportManager($app);
-	});
+		    return new TransportManager($app);
+	    });
     }
 }
