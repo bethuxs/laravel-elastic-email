@@ -15,7 +15,8 @@ class TransportManager extends LaravelTransportManager
 			$config['key'],
 			$config['account'],
             $config['model'],
-            $config['rate']
+            $config['rate'],
+            $config['transaccional']
 		);
 	}
 }
