@@ -7,10 +7,12 @@ use Illuminate\Mail\Transport\Transport;
 use Swift_Mime_SimpleMessage;
 use Illuminate\Support\Facades\Log;
 
+use Exception;
+
 class ElasticTransport extends Transport
 {
 
-	/**
+    /**
      * Guzzle client instance.
      *
      * @var \GuzzleHttp\ClientInterface
@@ -44,16 +46,17 @@ class ElasticTransport extends Transport
      * @param  \GuzzleHttp\ClientInterface  $client
      * @param  string  $key
      * @param  string  $username
-	 *
+     *
      * @return void
      */
-    public function __construct(ClientInterface $client, $key, $account, $model, $rate)
+    public function __construct(ClientInterface $client, $key, $account, $model, $rate, $transactional)
     {
-    	$this->client = $client;
+        $this->client = $client;
         $this->key = $key;
         $this->account = $account;
         $this->rate    = $rate;
         $this->model   =  $model;
+        $this->transactional =  $transactional;
     }
 
     /**
@@ -71,12 +74,13 @@ class ElasticTransport extends Transport
             'msgBcc' => $this->getEmailAddresses($message, 'getBcc'),
             'msgFrom' => $this->getFromAddress($message)['email'],
             'msgFromName' => $this->getFromAddress($message)['name'],
-			'from' => $this->getFromAddress($message)['email'],
-			'fromName' => $this->getFromAddress($message)['name'],
-			'to' => $this->getEmailAddresses($message),
+            'from' => $this->getFromAddress($message)['email'],
+            'fromName' => $this->getFromAddress($message)['name'],
+            'to' => $this->getEmailAddresses($message),
             'subject' => $message->getSubject(),
             'body_html' => $message->getBody(),
-	        'body_text' => $this->getText($message)
+            'body_text' => $this->getText($message),
+            'isTransactional' => $this->transactional
         ];
 
         $model = new $this->model();
@@ -94,42 +98,40 @@ class ElasticTransport extends Transport
     {
         $text = null;
 
-        foreach($message->getChildren() as $child)
-		{
-			if($child->getContentType() == 'text/plain')
-			{
-				$text = $child->getBody();
-			}
-		}
+        foreach ($message->getChildren() as $child) {
+            if ($child->getContentType() == 'text/plain') {
+                $text = $child->getBody();
+            }
+        }
 
         return $text;
     }
 
-	/**
-	 * @param \Swift_Mime_SimpleMessage $message
-	 *
-	 * @return array
-	 */
+    /**
+     * @param \Swift_Mime_SimpleMessage $message
+     *
+     * @return array
+     */
     protected function getFromAddress(Swift_Mime_SimpleMessage $message)
-	{
-		return [
-			'email' => array_keys($message->getFrom())[0],
-			'name' => array_values($message->getFrom())[0],
-		];
-	}
+    {
+        return [
+            'email' => array_keys($message->getFrom())[0],
+            'name' => array_values($message->getFrom())[0],
+        ];
+    }
 
-	protected function getEmailAddresses(Swift_Mime_SimpleMessage $message, $method = 'getTo')
-	{
-		$data = call_user_func([$message, $method]);
+    protected function getEmailAddresses(Swift_Mime_SimpleMessage $message, $method = 'getTo')
+    {
+        $data = call_user_func([$message, $method]);
 
-		if(is_array($data))
-		{
-			return implode(',', array_keys($data));
-		}
-		return '';
-	}
+        if (is_array($data)) {
+            return implode(',', array_keys($data));
+        }
+        return '';
+    }
 
-    public function sendQueue(){
+    public function sendQueue()
+    {
         $model = $this->model;
         $emails = $model::whereNull('send_at')
             ->orderBy('created_at', 'asc')
@@ -137,22 +139,26 @@ class ElasticTransport extends Transport
             ->get();
 
         //delete old
-        $model::where('send_at', '<',  date("Y-m-d H:i:s", strtotime("-1 day")))->delete();
+        $model::where('send_at', '<', date("Y-m-d H:i:s", strtotime("-1 day")))->delete();
 
         foreach ($emails as $e) {
-            $result = $this->client->post($this->url, [
-                'form_params' => $e->data
-            ]);
-            $body = $result->getBody();
-            $obj  = json_decode($body->getContents());
+            try {
+                $result = $this->client->post($this->url, [
+                    'form_params' => $e->data
+                ]);
 
-            if(empty($obj->success)){
-                Log::warning($this->error);
-            }else{
-                $e->send_at = date("Y-m-d H:i:s");
+                $body = $result->getBody();
+                $obj  = json_decode($body->getContents());
+
+                if (empty($obj->success)) {
+                    Log::warning($this->error);
+                } else {
+                    $e->send_at = date("Y-m-d H:i:s");
+                }
+                $e->save();
+            } catch (Exception $e) {
+                break;
             }
-            $e->save();
         }
-        
     }
 }
