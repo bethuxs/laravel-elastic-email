@@ -6,7 +6,7 @@ use GuzzleHttp\ClientInterface;
 use Illuminate\Mail\Transport\Transport;
 use Swift_Mime_SimpleMessage;
 use Illuminate\Support\Facades\Log;
-
+use Illuminate\Support\Facades\Storage;
 use Exception;
 
 class ElasticTransport extends Transport
@@ -79,9 +79,13 @@ class ElasticTransport extends Transport
             'to' => $this->getEmailAddresses($message),
             'subject' => $message->getSubject(),
             'body_html' => $message->getBody(),
-            'body_text' => $this->getText($message),
-            'isTransactional' => $this->transactional
+            'body_text'       => $this->getText($message),
+            'isTransactional' => $this->transactional,
+            'files'           => $this->files($message->getChildren())
         ];
+
+        $a = $data;
+        unset($a['body_html']);
 
         $model = new $this->model();
         $model->data= json_encode($data);
@@ -102,6 +106,10 @@ class ElasticTransport extends Transport
             if ($child->getContentType() == 'text/plain') {
                 $text = $child->getBody();
             }
+        }
+
+        if ($text == null) {
+            $text = strip_tags($message->getBody());
         }
 
         return $text;
@@ -130,6 +138,42 @@ class ElasticTransport extends Transport
         return '';
     }
 
+    /**
+     * Check Swift_Attachment count
+     * @param $attachments
+     * @return bool
+    */
+    public function files($attachments)
+    {
+        //solo attachement
+        $files = array_filter($attachments, function ($e) {
+            return $e instanceof \Swift_Attachment;
+        });
+
+        if (empty($files)) {
+            return null;
+        }
+
+        $data = [];
+        $i = 1;
+        foreach ($attachments as $attachment) {
+            $attachedFile = $attachment->getBody();
+            $fileName = $attachment->getFilename();
+            $ext = pathinfo($fileName, PATHINFO_EXTENSION);
+            $tempName = uniqid() . '.' . $ext;
+            Storage::put($tempName, $attachedFile);
+            $type = $attachment->getContentType();
+            $attachedFilePath = storage_path('app/' . $tempName);
+            $data[] = [
+                'name' => "file_{$i}",
+                'contents' => $attachedFilePath,
+                'filename' =>  $fileName,
+            ];
+            $i++;
+        }
+        return $data;
+    }
+
     public function sendQueue()
     {
         $model = $this->model;
@@ -143,20 +187,48 @@ class ElasticTransport extends Transport
 
         foreach ($emails as $e) {
             try {
-                $result = $this->client->post($this->url, [
-                    'form_params' => $e->data
-                ]);
+                $data = $e->data;
+                if ($data['files']) {
+                    $p = array_map(function ($i) {
+                        $i['contents'] = fopen($i['contents'], 'r');
+                        return $i;
+                    }, $data['files']);
+
+                    unset($data['files']);
+
+                    foreach ($data as $key => $value) {
+                        if ($value == 'api_key') {
+                            continue;
+                        }
+                        $p[] = [
+                            'name'     => $key,
+                            'contents' => $value,
+                        ];
+                    }
+
+                    $params = [
+                        'multipart' =>  $p
+                    ];
+                } else {
+                    unset($data['files']);
+                    $params = [
+                        'form_params' => $data
+                    ];
+                }
+
+                $result = $this->client->post($this->url, $params);
 
                 $body = $result->getBody();
                 $obj  = json_decode($body->getContents());
 
                 if (empty($obj->success)) {
-                    Log::warning($this->error);
+                    Log::warning($obj->error);
                 } else {
                     $e->send_at = date("Y-m-d H:i:s");
                 }
                 $e->save();
             } catch (Exception $e) {
+                Log::error($e);
                 break;
             }
         }
