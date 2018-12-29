@@ -174,6 +174,60 @@ class ElasticTransport extends Transport
         return $data;
     }
 
+    public function attachmentParam(array $data)
+    {
+        $p = array_map(function ($i) {
+            $i['contents'] = fopen($i['contents'], 'r');
+            return $i;
+        }, $data['files']);
+
+        unset($data['files']);
+
+        foreach ($data as $key => $value) {
+            $p[] = [
+                'name'     => $key,
+                'contents' => $value,
+            ];
+        }
+
+        return [
+            'multipart' =>  $p
+        ];
+    }
+
+    public function withoutAttachment(array $data)
+    {
+        unset($data['files']);
+        return [
+            'form_params' => $data
+        ];
+    }
+
+    public function sendMail(array $data, $resend = true)
+    {
+        $params = $data['files'] ?
+            $this->attachmentParam($data) :
+            $this->withoutAttachment($data);
+
+        $result = $this->client->post($this->url, $params);
+        $body = $result->getBody();
+        $obj  = json_decode($body->getContents());
+        if (empty($obj->success)) {
+            Log::warning($obj->error);
+            //intenta reenviar sin adjunto
+            if ($data['files'] && $resend) {
+                $data['files'] =  null;
+                $this->sendMail($data, false);
+            }
+        } else {
+            return true;
+        }
+    }
+
+    /**
+     * Process the queue
+     * @return [type] [description]
+     */
     public function sendQueue()
     {
         $model = $this->model;
@@ -188,45 +242,10 @@ class ElasticTransport extends Transport
         foreach ($emails as $e) {
             try {
                 $data = $e->data;
-                if ($data['files']) {
-                    $p = array_map(function ($i) {
-                        $i['contents'] = fopen($i['contents'], 'r');
-                        return $i;
-                    }, $data['files']);
-
-                    unset($data['files']);
-
-                    foreach ($data as $key => $value) {
-                        if ($value == 'api_key') {
-                            continue;
-                        }
-                        $p[] = [
-                            'name'     => $key,
-                            'contents' => $value,
-                        ];
-                    }
-
-                    $params = [
-                        'multipart' =>  $p
-                    ];
-                } else {
-                    unset($data['files']);
-                    $params = [
-                        'form_params' => $data
-                    ];
-                }
-
-                $result = $this->client->post($this->url, $params);
-
-                $body = $result->getBody();
-                $obj  = json_decode($body->getContents());
-
-                if (empty($obj->success)) {
-                    Log::warning($obj->error);
-                } else {
+                if ($this->sendMail($data)) {
                     $e->send_at = date("Y-m-d H:i:s");
-                }
-                $e->save();
+                    $e->save();
+                };
             } catch (Exception $e) {
                 Log::error($e);
                 break;
