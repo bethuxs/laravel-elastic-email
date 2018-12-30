@@ -147,7 +147,7 @@ class ElasticTransport extends Transport
     {
         //solo attachement
         $files = array_filter($attachments, function ($e) {
-            return $e instanceof \Swift_Attachment;
+            return $e instanceof \Swift_Attachment && $e->getDisposition() == 'attachment';
         });
 
         if (empty($files)) {
@@ -156,7 +156,7 @@ class ElasticTransport extends Transport
 
         $data = [];
         $i = 1;
-        foreach ($attachments as $attachment) {
+        foreach ($files as $attachment) {
             $attachedFile = $attachment->getBody();
             $fileName = $attachment->getFilename();
             $ext = pathinfo($fileName, PATHINFO_EXTENSION);
@@ -165,12 +165,13 @@ class ElasticTransport extends Transport
             $type = $attachment->getContentType();
             $attachedFilePath = storage_path('app/' . $tempName);
             $data[] = [
-                'name' => "file_{$i}",
+                'name'     => "file_{$i}",
                 'contents' => $attachedFilePath,
                 'filename' =>  $fileName,
             ];
             $i++;
         }
+
         return $data;
     }
 
