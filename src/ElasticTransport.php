@@ -41,6 +41,11 @@ class ElasticTransport extends Transport
     protected $url = 'https://api.elasticemail.com/v2/email/send';
 
     /**
+     * Save the path of the files
+     */
+    protected $files = [];
+
+    /**
      * Create a new Elastic Email transport instance.
      *
      * @param  \GuzzleHttp\ClientInterface  $client
@@ -160,15 +165,17 @@ class ElasticTransport extends Transport
             $attachedFile = $attachment->getBody();
             $fileName = $attachment->getFilename();
             $ext = pathinfo($fileName, PATHINFO_EXTENSION);
-            $tempName = tempnam(sys_get_temp_dir(), uniqid()) . ".{$ext}";
-            file_put_contents($tempName, $attachedFile);
+            $tempName = uniqid() . '.' . $ext;
+            Storage::put($tempName, $attachedFile);
             $type = $attachment->getContentType();
-            $attachedFilePath =  $tempName;
+            $attachedFilePath = storage_path('app/' . $tempName);
             $data[] = [
                 'name'     => "file_{$i}",
                 'contents' => $attachedFilePath,
-                'filename' =>  $fileName,
+                'filename' => $fileName,
             ];
+
+            $this->files[] = $attachedFilePath;
             $i++;
         }
 
@@ -250,6 +257,15 @@ class ElasticTransport extends Transport
             } catch (Exception $e) {
                 Log::error($e);
                 break;
+            }
+        }
+    }
+
+    public function __destruct()
+    {
+        foreach ($this->files as $key => $v) {
+            if (is_readable($v)) {
+                unlink($v);
             }
         }
     }
