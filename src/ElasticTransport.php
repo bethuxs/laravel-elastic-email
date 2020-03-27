@@ -1,5 +1,4 @@
 <?php
-
 namespace Chocoholics\LaravelElasticEmail;
 
 use GuzzleHttp\ClientInterface;
@@ -174,8 +173,6 @@ class ElasticTransport extends Transport
                 'contents' => $attachedFilePath,
                 'filename' => $fileName,
             ];
-
-            $this->files[] = $attachedFilePath;
             $i++;
         }
 
@@ -183,9 +180,11 @@ class ElasticTransport extends Transport
     }
 
     public function attachmentParam(array $data)
-    {
+    {   
+        $obj = $this;
         //create attachment param
-        $p = array_map(function ($i) {
+        $p = array_map(function ($i) use ($obj) {
+            $obj->files[] = $i['contents'];
             $i['contents'] = fopen($i['contents'], 'r');
             return $i;
         }, $data['files']);
@@ -218,17 +217,21 @@ class ElasticTransport extends Transport
             $this->attachmentParam($data) :
             $this->withoutAttachment($data);
 
+
         $result = $this->client->post($this->url, $params);
         $body = $result->getBody();
         $obj  = json_decode($body->getContents());
+        Log::debug($body->getContents());
         if (empty($obj->success)) {
-            Log::warning($obj->error);
+            Log::warning("Error", $obj->error);
             //intenta reenviar sin adjunto
             if ($data['files'] && $resend) {
+                Log::warning('Resend without attachment');
                 $data['files'] =  null;
                 $this->sendMail($data, false);
             }
         } else {
+            $this->cleanFiles();
             return true;
         }
     }
@@ -262,12 +265,14 @@ class ElasticTransport extends Transport
         }
     }
 
-    public function __destruct()
+    public function cleanFiles()
     {
         foreach ($this->files as $key => $v) {
             if (is_readable($v)) {
                 unlink($v);
             }
         }
+
+        $this->files = [];
     }
 }
