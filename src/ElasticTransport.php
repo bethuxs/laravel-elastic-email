@@ -184,6 +184,7 @@ class ElasticTransport extends Transport
 
     public function attachmentParam(array $data)
     {
+        //create attachment param
         $p = array_map(function ($i) {
             $i['contents'] = fopen($i['contents'], 'r');
             return $i;
