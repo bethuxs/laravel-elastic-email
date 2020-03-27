@@ -168,7 +168,7 @@ class ElasticTransport extends Transport
             $tempName = uniqid() . '.' . $ext;
             Storage::put($tempName, $attachedFile);
             $type = $attachment->getContentType();
-            $attachedFilePath = storage_path('app/' . $tempName);
+            $attachedFilePath = storage_path("app/{$tempName}");
             $data[] = [
                 'name'     => "file_{$i}",
                 'contents' => $attachedFilePath,
