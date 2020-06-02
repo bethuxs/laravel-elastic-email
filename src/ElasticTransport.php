@@ -224,7 +224,7 @@ class ElasticTransport extends Transport
         $obj  = json_decode($body->getContents());
         Log::debug($body->getContents());
         if (empty($obj->success)) {
-            Log::warning("Error", $obj->error);
+            Log::warning("Error $obj->error");
             //intenta reenviar sin adjunto
             if ($data['files'] && $resend) {
                 Log::warning('Resend without attachment');
