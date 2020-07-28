@@ -1,11 +1,9 @@
 <?php
-
 namespace Chocoholics\LaravelElasticEmail;
 
 use Illuminate\Mail\MailManager;
 use Illuminate\Support\ServiceProvider;
-use SendinBlue\Client\Api\SMTPApi;
-use SendinBlue\Client\Configuration;
+use Illuminate\Support\Arr;
 use GuzzleHttp\Client as GuzzleClient;
 
 class ElasticServiceProvider extends ServiceProvider
@@ -17,10 +15,11 @@ class ElasticServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        $this->app[MailManager::class]->extend('elastic_email', function ($app) {
-            $config = $app['config']->get('services.elastic_email', []);
-            $client = $this->app->make(GuzzleClient::class, $config);
-            return new ElasticTransport($client, $config);
+        $this->app->singleton('elastic_email', function ($app) {
+            $config = $this->app['config']->get('services.elastic_email', []);
+            $client = new GuzzleClient(Arr::get($config, 'guzzle', []));
+            $transport = new ElasticTransport($client, $config);
+            return $transport;
         });
     }
 
@@ -31,13 +30,10 @@ class ElasticServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        /*$this->app->singleton(SMTPApi::class, function ($app) {
-            $config = Configuration::getDefaultConfiguration()->setApiKey($app['config']['services.sendinblue.key_identifier'], $app['config']['services.sendinblue.key']);
-
-            return new SMTPApi(
-                new GuzzleClient,
-                $config
-            );
-        });*/
+        $this->app->afterResolving(MailManager::class, function (MailManager $mail_manager) {
+            $mail_manager->extend('elastic_email', function ($config) {
+                return app('elastic_email');
+            });
+        });
     }
 }

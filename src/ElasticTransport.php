@@ -61,7 +61,7 @@ class ElasticTransport extends Transport
         $this->account = $account;
         $this->rate    = $rate;
         $this->model   =  $model;
-        $this->transactional =  $transactional;
+        $this->transactional =  $transactional ?? true;
     }
 
     /**
