@@ -53,8 +53,9 @@ class ElasticTransport extends Transport
      *
      * @return void
      */
-    public function __construct(ClientInterface $client, $key, $account, $model, $rate, $transactional)
+    public function __construct(ClientInterface $client, array $config)
     {
+        extract($config);
         $this->client = $client;
         $this->key = $key;
         $this->account = $account;

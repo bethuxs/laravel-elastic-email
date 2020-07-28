@@ -1,22 +1,21 @@
 <?php
-
 namespace Chocoholics\LaravelElasticEmail;
 
 use Illuminate\Mail\TransportManager as LaravelTransportManager;
 
 class TransportManager extends LaravelTransportManager
 {
-	protected function createElasticEmailDriver()
-	{
-		$config = $this->app['config']->get('services.elastic_email', []);
+    protected function createElasticEmailDriver()
+    {
+        $config = $this->app['config']->get('services.elastic_email', []);
 
-		return new ElasticTransport(
-			$this->guzzle($config),
-			$config['key'],
-			$config['account'],
+        return new ElasticTransport(
+            $this->guzzle($config),
+            $config['key'],
+            $config['account'],
             $config['model'],
             $config['rate'],
             $config['transaccional']
-		);
-	}
+        );
+    }
 }
