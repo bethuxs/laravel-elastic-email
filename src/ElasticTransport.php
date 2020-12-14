@@ -7,6 +7,7 @@ use Swift_Mime_SimpleMessage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Exception;
+use App;
 
 class ElasticTransport extends Transport
 {
