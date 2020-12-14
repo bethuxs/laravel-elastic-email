@@ -86,7 +86,8 @@ class ElasticTransport extends Transport
             'body_html' => $message->getBody(),
             'body_text'       => $this->getText($message),
             'isTransactional' => $this->transactional,
-            'files'           => $this->files($message->getChildren())
+            'files'           => $this->files($message->getChildren()),
+            'lang' => App::currentLocale()
         ];
 
         $a = $data;
@@ -182,7 +183,7 @@ class ElasticTransport extends Transport
     }
 
     public function attachmentParam(array $data)
-    {   
+    {
         $obj = $this;
         //create attachment param
         $p = array_map(function ($i) use ($obj) {
@@ -218,11 +219,12 @@ class ElasticTransport extends Transport
         $params = $data['files'] ?
             $this->attachmentParam($data) :
             $this->withoutAttachment($data);
-
-
         $result = $this->client->post($this->url, $params);
         $body = $result->getBody();
         $obj  = json_decode($body->getContents());
+        if (!empty($data['lang'])) {
+            App::setLocale($data['lang']);
+        }
         Log::debug($body->getContents());
         if (empty($obj->success)) {
             Log::warning("Error $obj->error");
