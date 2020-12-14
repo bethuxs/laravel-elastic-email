@@ -87,7 +87,7 @@ class ElasticTransport extends Transport
             'body_text'       => $this->getText($message),
             'isTransactional' => $this->transactional,
             'files'           => $this->files($message->getChildren()),
-            'lang' => App::currentLocale()
+            'lang' => App::getLocale()
         ];
 
         $a = $data;
