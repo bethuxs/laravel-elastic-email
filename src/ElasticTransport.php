@@ -71,7 +71,6 @@ class ElasticTransport extends Transport
     public function send(Swift_Mime_SimpleMessage $message, &$failedRecipients = null)
     {
         $this->beforeSendPerformed($message);
-
         $data = [
             'api_key' => $this->key,
             'account' => $this->account,
