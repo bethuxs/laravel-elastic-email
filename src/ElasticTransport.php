@@ -186,11 +186,13 @@ class ElasticTransport extends Transport
     {
         $obj = $this;
         //create attachment param
-        $p = array_map(function ($i) use ($obj) {
+        foreach ($data['files'] as $key => $i) {
+            if (!is_readable($i['contents'])) {
+                continue;
+            }
             $obj->files[] = $i['contents'];
             $i['contents'] = fopen($i['contents'], 'r');
-            return $i;
-        }, $data['files']);
+        }
 
         unset($data['files']);
 
