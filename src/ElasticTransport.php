@@ -93,9 +93,14 @@ class ElasticTransport extends Transport
         $a = $data;
         unset($a['body_html']);
 
-        $model = new $this->model();
-        $model->data= json_encode($data);
-        return $model->save();
+        if ($this->rate < 1) {
+            $this->sendMail();
+            return true;
+        } else {
+            $model = new $this->model();
+            $model->data= json_encode($data);
+            return $model->save();
+        }
     }
 
     /**
@@ -227,7 +232,6 @@ class ElasticTransport extends Transport
         if (!empty($data['lang'])) {
             App::setLocale($data['lang']);
         }
-        Log::debug($body->getContents());
         if (empty($obj->success)) {
             Log::warning("Error $obj->error");
             //intenta reenviar sin adjunto
