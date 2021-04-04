@@ -94,7 +94,7 @@ class ElasticTransport extends Transport
         unset($a['body_html']);
 
         if ($this->rate < 1) {
-            $this->sendMail();
+            $this->sendMail($data);
             return true;
         } else {
             $model = new $this->model();
