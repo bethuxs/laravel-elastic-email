@@ -252,6 +252,10 @@ class ElasticTransport extends Transport
      */
     public function sendQueue()
     {
+        if ($this->rate < 1) {
+            return;
+        }
+
         $model = $this->model;
         $emails = $model::whereNull('send_at')
             ->orderBy('created_at', 'asc')
@@ -260,7 +264,6 @@ class ElasticTransport extends Transport
 
         //delete old
         $model::where('send_at', '<', date("Y-m-d H:i:s", strtotime("-1 day")))->delete();
-
         foreach ($emails as $e) {
             try {
                 $data = $e->data;
