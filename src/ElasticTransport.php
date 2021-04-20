@@ -183,13 +183,13 @@ class ElasticTransport extends Transport
             ];
             $i++;
         }
-
         return $data;
     }
 
     public function attachmentParam(array $data)
     {
         $obj = $this;
+        $p = [];
         //create attachment param
         foreach ($data['files'] as $key => $i) {
             if (!is_readable($i['contents'])) {
@@ -197,10 +197,10 @@ class ElasticTransport extends Transport
             }
             $obj->files[] = $i['contents'];
             $i['contents'] = fopen($i['contents'], 'r');
+            $p[] = $i;
         }
 
         unset($data['files']);
-
         foreach ($data as $key => $value) {
             $p[] = [
                 'name'     => $key,
