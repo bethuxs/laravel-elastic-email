@@ -90,16 +90,7 @@ class ElasticTransport extends Transport
 
         $a = $data;
         unset($a['body_html']);
-
-        dd($data);
-        if ($this->rate < 1) {
-            $this->sendMail($data);
-            return true;
-        } else {
-            $model = new $this->model();
-            $model->data= json_encode($data);
-            return $model->save();
-        }
+        $this->sendMail($data);
     }
 
     /**
