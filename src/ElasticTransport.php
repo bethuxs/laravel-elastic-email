@@ -60,9 +60,7 @@ class ElasticTransport extends Transport
         $this->client = $client;
         $this->key = $key;
         $this->account = $account;
-        $this->rate    = $rate;
-        $this->model   =  $model;
-        $this->transactional =  $transactional ?? true;
+        $this->transactional = $transactional ?? true;
     }
 
     /**
@@ -93,6 +91,7 @@ class ElasticTransport extends Transport
         $a = $data;
         unset($a['body_html']);
 
+        dd($data);
         if ($this->rate < 1) {
             $this->sendMail($data);
             return true;
