@@ -88,6 +88,11 @@ class ElasticTransport extends Transport
             'lang' => App::getLocale()
         ];
 
+        $replyTo = $message->getReplyTo();
+        if (!empty($replyTo)) {
+            $data['replyTo'] = key($replyTo);
+        }
+
         $a = $data;
         unset($a['body_html']);
         $this->sendMail($data);
