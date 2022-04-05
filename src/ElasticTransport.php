@@ -69,6 +69,15 @@ class ElasticTransport extends Transport
     public function send(Swift_Mime_SimpleMessage $message, &$failedRecipients = null)
     {
         $this->beforeSendPerformed($message);
+        $headers = $message->getHeaders();
+        if ($headers->has('x-config-account')) {
+            $this->account = $headers->get('x-config-account');
+        }
+
+        if ($headers->has('x-config-key')) {
+            $this->key = $headers->get('x-config-key');
+        }
+
         $data = [
             'api_key' => $this->key,
             'account' => $this->account,
