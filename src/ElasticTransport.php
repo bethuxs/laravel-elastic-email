@@ -104,8 +104,6 @@ class ElasticTransport extends Transport
             $data['replyTo'] = key($replyTo);
         }
 
-        $a = $data;
-        unset($a['body_html']);
         $this->sendMail($data);
     }
 
@@ -238,6 +236,7 @@ class ElasticTransport extends Transport
         if (!empty($data['lang'])) {
             App::setLocale($data['lang']);
         }
+       
         if (empty($obj->success)) {
             Log::warning("Error $obj->error");
             //intenta reenviar sin adjunto
@@ -249,38 +248,6 @@ class ElasticTransport extends Transport
         } else {
             $this->cleanFiles();
             return true;
-        }
-    }
-
-    /**
-     * Process the queue
-     * @return [type] [description]
-     */
-    public function sendQueue()
-    {
-        if ($this->rate < 1) {
-            return;
-        }
-
-        $model = $this->model;
-        $emails = $model::whereNull('send_at')
-            ->orderBy('created_at', 'asc')
-            ->take($this->rate)
-            ->get();
-
-        //delete old
-        $model::where('send_at', '<', date("Y-m-d H:i:s", strtotime("-1 day")))->delete();
-        foreach ($emails as $e) {
-            try {
-                $data = $e->data;
-                if ($this->sendMail($data)) {
-                    $e->send_at = date("Y-m-d H:i:s");
-                    $e->save();
-                };
-            } catch (Exception $e) {
-                Log::error($e);
-                break;
-            }
         }
     }
 
