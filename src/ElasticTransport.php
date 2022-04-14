@@ -71,11 +71,13 @@ class ElasticTransport extends Transport
         $this->beforeSendPerformed($message);
         $headers = $message->getHeaders();
         if ($headers->has('x-config-account')) {
-            $this->account = $headers->get('x-config-account');
+            $this->account = (string) $headers->get('x-config-account')->getFieldBody();
+            $headers->remove('x-config-account');
         }
 
         if ($headers->has('x-config-key')) {
-            $this->key = $headers->get('x-config-key');
+            $this->key = (string) $headers->get('x-config-key')->getFieldBody();
+            $headers->remove('x-config-key');
         }
 
         $data = [
