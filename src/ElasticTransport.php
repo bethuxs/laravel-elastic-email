@@ -80,6 +80,11 @@ class ElasticTransport extends Transport
             $headers->remove('x-config-key');
         }
 
+        if ($headers->has('x-config-transactional')) {
+            $this->transactional = (int) !empty($headers->get('x-config-transactional')->getFieldBody());
+            $headers->remove('x-config-transactional');
+        }
+
         $data = [
             'api_key' => $this->key,
             'account' => $this->account,
@@ -237,14 +242,18 @@ class ElasticTransport extends Transport
             App::setLocale($data['lang']);
         }
        
+        $to = json_encode($data['to']);
         if (empty($obj->success)) {
-            Log::warning("Error $obj->error");
+            Log::warning("Error Elastic Email: $obj->error, email: $to");
             //intenta reenviar sin adjunto
             if ($data['files'] && $resend) {
                 Log::warning('Resend without attachment');
                 $data['files'] =  null;
                 $this->sendMail($data, false);
+            } else if (!$resend) {
+                Log::error("Error Elastic Email: email: $to, no se envió");
             }
+            return false;
         } else {
             $this->cleanFiles();
             return true;
