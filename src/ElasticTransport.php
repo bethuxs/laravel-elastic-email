@@ -233,6 +233,14 @@ class ElasticTransport extends Transport
         $params = $data['files'] ?
             $this->attachmentParam($data) :
             $this->withoutAttachment($data);
+        try {
+            $result = $this->client->post($this->url, $params);
+        } catch (\GuzzleHttp\Exception\ClientException $e) {
+            $response = $e->getResponse();
+            $responseBodyAsString = $response->getBody()->getContents();
+            Log::error(["Error Elastic Email", $responseBodyAsString, $params]);
+            return false;
+        }
         $result = $this->client->post($this->url, $params);
         $body = $result->getBody();
         $obj  = json_decode($body->getContents());
