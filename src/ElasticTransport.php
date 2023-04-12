@@ -235,19 +235,19 @@ class ElasticTransport extends Transport
             $this->withoutAttachment($data);
         try {
             $result = $this->client->post($this->url, $params);
+            $body = $result->getBody();
+            $obj  = json_decode($body->getContents());
         } catch (\GuzzleHttp\Exception\ClientException $e) {
             $response = $e->getResponse();
             $responseBodyAsString = $response->getBody()->getContents();
             Log::error(["Error Elastic Email", $responseBodyAsString, $params]);
             return false;
         }
-        $result = $this->client->post($this->url, $params);
-        $body = $result->getBody();
-        $obj  = json_decode($body->getContents());
+
         if (!empty($data['lang'])) {
             App::setLocale($data['lang']);
         }
-       
+
         $to = json_encode($data['to']);
         if (empty($obj->success)) {
             Log::warning("Error Elastic Email: $obj->error, email: $to");
