@@ -1,13 +1,13 @@
 # Laravel Elastic Email #
 
-A Laravel wrapper for Elastic Email
+A Laravel Mailing Driver for Elastic Email
 
 ### Installation ###
 
 Add Laravel Elastic Email as a dependency using the composer CLI:
 
 ```bash
-composer require chocoholics/laravel-elastic-email
+composer require ebethus/laravel-elastic-email-driver
 ```
 
 Next, add the following to your config/services.php and add the correct values to your .env file
@@ -31,7 +31,11 @@ Next, in config/app.php, comment out Laravel's default MailServiceProvider. If u
 ],
 ```
 
-Finally switch your default mail provider to elastic email in your .env file by setting MAIL_DRIVER=elastic_email
+Finally switch your default mail provider to elastic email in your .env file by setting 
+
+```
+MAIL_DRIVER=elastic_email
+```
 
 ### Usage ###
 
