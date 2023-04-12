@@ -1,6 +1,6 @@
 {
-    "name": "ashrey/laravel-elastic-email-rate",
-    "description": "A Laravel wrapper for Elastic Email, with rate limit",
+    "name": "ebethus/laravel-elastic-email",
+    "description": "A Laravel Elastic Maling Driver",
     "keywords": ["laravel", "email", "elastic email"],
     "license": "MIT",
     "authors": [
@@ -9,12 +9,11 @@
             "email": "obura@tongoi.com",
             "url": "https://www.tongoi.com",
             "role": "Developer"
-        }, 
-
+        },
         {
             "company": "SDChico",
             "email": "alberroteran@gmail.com",
-            "url": "http://tecnofalls.com",
+            "url": "https://tecnofalls.com",
             "role": "Developer"
         } 
 
