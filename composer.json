@@ -1,5 +1,5 @@
 {
-    "name": "ebethus/laravel-elastic-email",
+    "name": "ebethus/laravel-elastic-email-driver",
     "description": "A Laravel Elastic Maling Driver",
     "keywords": ["laravel", "email", "elastic email"],
     "license": "MIT",
@@ -16,7 +16,6 @@
             "url": "https://tecnofalls.com",
             "role": "Developer"
         } 
-
     ],
     "support": {
         "email": "alberroteran@gmail.com"
