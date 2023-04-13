@@ -2,14 +2,14 @@
 namespace Chocoholics\LaravelElasticEmail;
 
 use GuzzleHttp\ClientInterface;
-use Illuminate\Mail\Transport\Transport;
-use Swift_Mime_SimpleMessage;
+use Symfony\Component\Mailer\Transport\TransportInterface;
+use Symfony\Component\Mime\RawMessage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Exception;
 use App;
 
-class ElasticTransport extends Transport
+class ElasticTransport extends TransportInterface
 {
 
     /**
@@ -66,7 +66,7 @@ class ElasticTransport extends Transport
     /**
      * {@inheritdoc}
      */
-    public function send(Swift_Mime_SimpleMessage $message, &$failedRecipients = null)
+    public function send(RawMessage $message, &$failedRecipients = null)
     {
         $this->beforeSendPerformed($message);
         $headers = $message->getHeaders();
@@ -100,7 +100,7 @@ class ElasticTransport extends Transport
             'body_html' => $message->getBody(),
             'body_text'       => $this->getText($message),
             'isTransactional' => $this->transactional,
-            'files'           => $this->files($message->getChildren()),
+            'files'           => $this->files($message),
             'lang' => App::getLocale()
         ];
 
@@ -115,10 +115,10 @@ class ElasticTransport extends Transport
     /**
      * Get the plain text part.
      *
-     * @param  \Swift_Mime_SimpleMessage $message
+     * @param  RawMessage $message
      * @return text|null
      */
-    protected function getText(Swift_Mime_SimpleMessage $message)
+    protected function getText(RawMessage $message)
     {
         $text = null;
 
@@ -136,11 +136,11 @@ class ElasticTransport extends Transport
     }
 
     /**
-     * @param \Swift_Mime_SimpleMessage $message
+     * @param RawMessage $message
      *
      * @return array
      */
-    protected function getFromAddress(Swift_Mime_SimpleMessage $message)
+    protected function getFromAddress(RawMessage $message)
     {
         return [
             'email' => array_keys($message->getFrom())[0],
@@ -148,7 +148,7 @@ class ElasticTransport extends Transport
         ];
     }
 
-    protected function getEmailAddresses(Swift_Mime_SimpleMessage $message, $method = 'getTo')
+    protected function getEmailAddresses(RawMessage $message, $method = 'getTo')
     {
         $data = call_user_func([$message, $method]);
 
@@ -163,12 +163,10 @@ class ElasticTransport extends Transport
      * @param $attachments
      * @return bool
     */
-    public function files($attachments)
+    public function files(RawMessage $message)
     {
         //solo attachement
-        $files = array_filter($attachments, function ($e) {
-            return $e instanceof \Swift_Attachment && $e->getDisposition() == 'attachment';
-        });
+        $files = $this->getAttachments($message);
 
         if (empty($files)) {
             return null;
