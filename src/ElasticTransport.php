@@ -4,12 +4,15 @@ namespace Chocoholics\LaravelElasticEmail;
 use GuzzleHttp\ClientInterface;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 use Symfony\Component\Mime\RawMessage;
+use Symfony\Component\Mailer\Envelope;
+use Symfony\Component\Mailer\SentMessage;
+
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Exception;
 use App;
 
-class ElasticTransport extends TransportInterface
+class ElasticTransport implements TransportInterface
 {
 
     /**
@@ -66,9 +69,8 @@ class ElasticTransport extends TransportInterface
     /**
      * {@inheritdoc}
      */
-    public function send(RawMessage $message, &$failedRecipients = null)
+    public function send(RawMessage $message, ?Envelope $envelope = null) : ?\Symfony\Component\Mailer\SentMessage
     {
-        $this->beforeSendPerformed($message);
         $headers = $message->getHeaders();
         if ($headers->has('x-config-account')) {
             $this->account = (string) $headers->get('x-config-account')->getFieldBody();
@@ -85,20 +87,22 @@ class ElasticTransport extends TransportInterface
             $headers->remove('x-config-transactional');
         }
 
+        $to = current($message->getTo());
+        $from = current($message->getFrom());
         $data = [
             'api_key' => $this->key,
             'account' => $this->account,
-            'msgTo' => $this->getEmailAddresses($message),
+            'msgTo' => $to->getName(),
             'msgCC' => $this->getEmailAddresses($message, 'getCc'),
             'msgBcc' => $this->getEmailAddresses($message, 'getBcc'),
-            'msgFrom' => $this->getFromAddress($message)['email'],
-            'msgFromName' => $this->getFromAddress($message)['name'],
-            'from' => $this->getFromAddress($message)['email'],
-            'fromName' => $this->getFromAddress($message)['name'],
-            'to' => $this->getEmailAddresses($message),
+            'msgFrom' => $from->getAddress(),
+            'msgFromName' => $from->getName(),
+            'from' => $from->getAddress(),
+            'fromName' => $from->getName(),
+            'to' => $to->getAddress(),
             'subject' => $message->getSubject(),
-            'body_html' => $message->getBody(),
-            'body_text'       => $this->getText($message),
+            'body_html' => $message->getHtmlBody(),
+            'body_text'       =>$message->getTextBody(),
             'isTransactional' => $this->transactional,
             'files'           => $this->files($message),
             'lang' => App::getLocale()
@@ -106,47 +110,13 @@ class ElasticTransport extends TransportInterface
 
         $replyTo = $message->getReplyTo();
         if (!empty($replyTo)) {
-            $data['replyTo'] = key($replyTo);
+            $data['replyTo'] = current($replyTo)->getAddress();
         }
 
         $this->sendMail($data);
+        return new SentMessage($message, $envelope);
     }
 
-    /**
-     * Get the plain text part.
-     *
-     * @param  RawMessage $message
-     * @return text|null
-     */
-    protected function getText(RawMessage $message)
-    {
-        $text = null;
-
-        foreach ($message->getChildren() as $child) {
-            if ($child->getContentType() == 'text/plain') {
-                $text = $child->getBody();
-            }
-        }
-
-        if ($text == null) {
-            $text = strip_tags($message->getBody());
-        }
-
-        return $text;
-    }
-
-    /**
-     * @param RawMessage $message
-     *
-     * @return array
-     */
-    protected function getFromAddress(RawMessage $message)
-    {
-        return [
-            'email' => array_keys($message->getFrom())[0],
-            'name' => array_values($message->getFrom())[0],
-        ];
-    }
 
     protected function getEmailAddresses(RawMessage $message, $method = 'getTo')
     {
@@ -166,7 +136,7 @@ class ElasticTransport extends TransportInterface
     public function files(RawMessage $message)
     {
         //solo attachement
-        $files = $this->getAttachments($message);
+        $files = $message->getAttachments();
 
         if (empty($files)) {
             return null;
@@ -273,5 +243,10 @@ class ElasticTransport extends TransportInterface
         }
 
         $this->files = [];
+    }
+
+    public function __toString(): string
+    {
+        return 'elasticemail';
     }
 }

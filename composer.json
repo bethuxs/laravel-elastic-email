@@ -21,8 +21,9 @@
         "email": "alberroteran@gmail.com"
     },
     "require": {
-        "laravel/framework": "7.0.x|8.x.x|9.x.x",
-        "guzzlehttp/guzzle": ">=7.0"
+        "laravel/framework": "9.x.x|10.x.x",
+        "guzzlehttp/guzzle": ">=7.0",
+        "symfony/mailer": "^6.0",
     },
     "autoload": {
         "psr-4": {
