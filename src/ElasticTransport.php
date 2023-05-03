@@ -73,17 +73,17 @@ class ElasticTransport implements TransportInterface
     {
         $headers = $message->getHeaders();
         if ($headers->has('x-config-account')) {
-            $this->account = (string) $headers->get('x-config-account')->getFieldBody();
+            $this->account = (string) $headers->get('x-config-account')->getValue();
             $headers->remove('x-config-account');
         }
 
         if ($headers->has('x-config-key')) {
-            $this->key = (string) $headers->get('x-config-key')->getFieldBody();
+            $this->key = (string) $headers->get('x-config-key')->getValue();
             $headers->remove('x-config-key');
         }
 
         if ($headers->has('x-config-transactional')) {
-            $this->transactional = (int) !empty($headers->get('x-config-transactional')->getFieldBody());
+            $this->transactional = (int) !empty($headers->get('x-config-transactional')->getValue());
             $headers->remove('x-config-transactional');
         }
 
