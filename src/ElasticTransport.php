@@ -89,6 +89,16 @@ class ElasticTransport implements TransportInterface
 
         $to = current($message->getTo());
         $from = current($message->getFrom());
+        if (empty($to)) {
+            \Log::debug(['No se especificó destinatario', $message]);
+            throw new Exception('No se especificó destinatario');
+        }
+
+        if (empty($from)) {
+            \Log::debug(['No se especificó remitente', $message]);
+            throw new Exception('No se especificó remitente');
+        }
+
         $data = [
             'api_key' => $this->key,
             'account' => $this->account,
