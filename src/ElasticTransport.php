@@ -87,7 +87,23 @@ class ElasticTransport implements TransportInterface
             $headers->remove('x-config-transactional');
         }
 
-        $to = current($message->getTo());
+        // reduce all to addresses to a single string, separated by ;
+        $to = array_reduce(
+            $message->getTo(),
+            function ($carry, $item) {
+                return "$carry;" . $item->getAddress();
+            },
+            ''
+        );
+
+        $msgTo = array_reduce(
+            $message->getTo(),
+            function ($carry, $item) {
+                return "$carry;" . $item->getName();
+            },
+            ''
+        );
+
         $from = current($message->getFrom());
         if (empty($to)) {
             \Log::debug(['No se especificó destinatario', $message]);
@@ -102,14 +118,14 @@ class ElasticTransport implements TransportInterface
         $data = [
             'api_key' => $this->key,
             'account' => $this->account,
-            'msgTo' => $to->getName(),
+            'msgTo' => $msgTo,
+            'to' => $to,
             'msgCC' => $this->getEmailAddresses($message, 'getCc'),
             'msgBcc' => $this->getEmailAddresses($message, 'getBcc'),
             'msgFrom' => $from->getAddress(),
             'msgFromName' => $from->getName(),
             'from' => $from->getAddress(),
             'fromName' => $from->getName(),
-            'to' => $to->getAddress(),
             'subject' => $message->getSubject(),
             'body_html' => $message->getHtmlBody(),
             'body_text'       =>$message->getTextBody(),
