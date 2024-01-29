@@ -87,25 +87,18 @@ class ElasticTransport implements TransportInterface
             $headers->remove('x-config-transactional');
         }
 
-        // reduce all to addresses to a single string, separated by ;
-        $to = array_reduce(
-            $message->getTo(),
-            function ($carry, $item) {
-                return "$carry;" . $item->getAddress();
-            },
-            ''
-        );
-
         $msgTo = array_reduce(
             $message->getTo(),
             function ($carry, $item) {
-                return "$carry;" . $item->getName();
+                // $carry is the result of the previous iteration; initially it's empty
+                // trim the trailing semicolon from the previous iteration and concatenate the next item
+                return trim("$carry;" . $item->getName(), ';');
             },
             ''
         );
 
         $from = current($message->getFrom());
-        if (empty($to)) {
+        if (empty($msgTo)) {
             \Log::debug(['No se especificó destinatario', $message]);
             throw new Exception('No se especificó destinatario');
         }
@@ -119,7 +112,6 @@ class ElasticTransport implements TransportInterface
             'api_key' => $this->key,
             'account' => $this->account,
             'msgTo' => $msgTo,
-            'to' => $to,
             'msgCC' => $this->getEmailAddresses($message, 'getCc'),
             'msgBcc' => $this->getEmailAddresses($message, 'getBcc'),
             'msgFrom' => $from->getAddress(),
@@ -234,8 +226,7 @@ class ElasticTransport implements TransportInterface
         } catch (\GuzzleHttp\Exception\ClientException $e) {
             $response = $e->getResponse();
             $responseBodyAsString = $response->getBody()->getContents();
-            Log::error(["Error Elastic Email", $responseBodyAsString, $params]);
-            return false;
+            throw new \RuntimeException("Error Elastic Email", $responseBodyAsString);
         }
 
         if (!empty($data['lang'])) {
