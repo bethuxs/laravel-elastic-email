@@ -233,7 +233,7 @@ class ElasticTransport implements TransportInterface
             App::setLocale($data['lang']);
         }
 
-        $to = json_encode($data['to']);
+        $to = json_encode($data['msgTo']);
         if (empty($obj->success)) {
             Log::warning("Error Elastic Email: $obj->error, email: $to");
             //intenta reenviar sin adjunto
