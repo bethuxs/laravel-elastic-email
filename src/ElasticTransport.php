@@ -92,7 +92,7 @@ class ElasticTransport implements TransportInterface
             function ($carry, $item) {
                 // $carry is the result of the previous iteration; initially it's empty
                 // trim the trailing semicolon from the previous iteration and concatenate the next item
-                return trim("$carry;" . $item->getName(), ';');
+                return trim("$carry;" . $item->getAddress(), ';');
             },
             ''
         );
@@ -135,13 +135,12 @@ class ElasticTransport implements TransportInterface
         return new SentMessage($message, $envelope);
     }
 
-
     protected function getEmailAddresses(RawMessage $message, $method = 'getTo')
     {
         $data = call_user_func([$message, $method]);
-
         if (is_array($data)) {
-            return implode(',', array_keys($data));
+            $emails = array_filter(array_keys($data));
+            return implode(',', $email);
         }
         return '';
     }
