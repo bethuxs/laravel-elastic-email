@@ -116,14 +116,12 @@ class ElasticTransport implements TransportInterface
             'msgBcc' => $this->getEmailAddresses($message, 'getBcc'),
             'msgFrom' => $from->getAddress(),
             'msgFromName' => $from->getName(),
-            'from' => $from->getAddress(),
-            'fromName' => $from->getName(),
             'subject' => $message->getSubject(),
-            'body_html' => $message->getHtmlBody(),
-            'body_text'       =>$message->getTextBody(),
             'isTransactional' => $this->transactional,
             'files'           => $this->files($message),
-            'lang' => App::getLocale()
+            'lang' => App::getLocale(),
+            'bodyHtml' => $message->getHtmlBody(),
+            'bodyText'       =>$message->getTextBody(),
         ];
 
         $replyTo = $message->getReplyTo();
@@ -140,7 +138,7 @@ class ElasticTransport implements TransportInterface
         $data = call_user_func([$message, $method]);
         if (is_array($data)) {
             $emails = array_filter(array_keys($data));
-            return implode(',', $email);
+            return implode(',', $emails);
         }
         return '';
     }
