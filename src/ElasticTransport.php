@@ -223,7 +223,9 @@ class ElasticTransport implements TransportInterface
         } catch (\GuzzleHttp\Exception\ClientException $e) {
             $response = $e->getResponse();
             $responseBodyAsString = $response->getBody()->getContents();
-            throw new \RuntimeException("Error Elastic Email", $responseBodyAsString);
+            $data['files'] = null;
+            $p = print_r($data, true);
+            throw new \RuntimeException("Error Elastic Email: $responseBodyAsString, $p");
         }
 
         if (!empty($data['lang'])) {
