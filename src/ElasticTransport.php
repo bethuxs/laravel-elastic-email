@@ -49,21 +49,24 @@ class ElasticTransport implements TransportInterface
     protected $files = [];
 
     /**
+     * The Elastic config
+     *
+     * @var array
+     */
+    protected $config = [];
+
+    /**
      * Create a new Elastic Email transport instance.
      *
-     * @param  \GuzzleHttp\ClientInterface  $client
-     * @param  string  $key
-     * @param  string  $username
+     * @param \GuzzleHttp\ClientInterface  $client
+     * @param array  $config
      *
      * @return void
      */
     public function __construct(ClientInterface $client, array $config)
     {
-        extract($config);
         $this->client = $client;
-        $this->key = $key;
-        $this->account = $account;
-        $this->transactional = $transactional ?? true;
+        $this->config = $config;
     }
 
     /**
@@ -71,17 +74,22 @@ class ElasticTransport implements TransportInterface
      */
     public function send(RawMessage $message, ?Envelope $envelope = null) : ?\Symfony\Component\Mailer\SentMessage
     {
+        // reset on each sent
+        $config = (object) $this->config;
         $headers = $message->getHeaders();
+        $this->account = $config->account;
         if ($headers->has('x-config-account')) {
             $this->account = (string) $headers->get('x-config-account')->getValue();
             $headers->remove('x-config-account');
         }
 
+        $this->key = $config->key;
         if ($headers->has('x-config-key')) {
             $this->key = (string) $headers->get('x-config-key')->getValue();
             $headers->remove('x-config-key');
         }
 
+        $this->transactional = $config->transactional;
         if ($headers->has('x-config-transactional')) {
             $this->transactional = (int) !empty($headers->get('x-config-transactional')->getValue());
             $headers->remove('x-config-transactional');
@@ -128,6 +136,15 @@ class ElasticTransport implements TransportInterface
         if (!empty($replyTo)) {
             $data['replyTo'] = current($replyTo)->getAddress();
         }
+
+        // info for debug
+        Log::debug([
+            'ElasticTransport',
+            $this->account,
+            $this->key,
+            $msgTo,
+            $data['subject'],
+        ]);
 
         $this->sendMail($data);
         return new SentMessage($message, $envelope);
