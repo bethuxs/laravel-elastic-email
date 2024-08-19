@@ -23,7 +23,7 @@
     "require": {
         "laravel/framework": "9.x.x|10.x.x|11.x.x",
         "guzzlehttp/guzzle": ">=7.0",
-        "symfony/mailer": "^6.0"
+        "symfony/mailer": "^7.0"
     },
     "autoload": {
         "psr-4": {
