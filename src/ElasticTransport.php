@@ -235,8 +235,7 @@ class ElasticTransport implements TransportInterface
             $this->withoutAttachment($data);
         try {
             $result = $this->client->post($this->url, $params);
-            $body = $result->getBody();
-            $obj  = json_decode($body->getContents());
+            $obj  = json_decode($result->getBody()->getContents());
         } catch (\GuzzleHttp\Exception\ClientException $e) {
             $response = $e->getResponse();
             $responseBodyAsString = $response->getBody()->getContents();
@@ -251,7 +250,7 @@ class ElasticTransport implements TransportInterface
 
         $to = json_encode($data['msgTo']);
         if (empty($obj->success)) {
-            Log::warning("Error Elastic Email: $obj->error, email: $to");
+            Log::warning(["Error Elastic Email email: $to", $obj]);
             //intenta reenviar sin adjunto
             if ($data['files'] && $resend) {
                 Log::warning('Resend without attachment');
